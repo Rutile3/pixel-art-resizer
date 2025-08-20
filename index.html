@@ -240,6 +240,7 @@
             function syncQualityUI() {
                 const isWebP = formatSel.value === 'image/webp';
                 qualityInput.disabled = !isWebP;
+                qualityInput.title = isWebP ? '' : 'PNGでは品質設定は無効です';
             }
             formatSel.addEventListener('change', syncQualityUI);
             syncQualityUI();
