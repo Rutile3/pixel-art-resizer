@@ -199,6 +199,16 @@
                 if (f) handleFile(f);
             });
 
+            // クリップボードからのコピペに対応
+            window.addEventListener('paste', (e) => {
+                const items = [...(e.clipboardData?.items || [])];
+                const it = items.find(i => i.type?.startsWith('image/'));
+                if (it) {
+                    const f = it.getAsFile();
+                    if (f) handleFile(f);
+                }
+            });
+
             // 倍率変更
             scaleInput.addEventListener('input', drawDst);
             fit2.addEventListener('click', () => { scaleInput.value = 2; drawDst(); });
