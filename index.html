@@ -215,6 +215,14 @@
             fit3.addEventListener('click', () => { scaleInput.value = 3; drawDst(); });
             fit4.addEventListener('click', () => { scaleInput.value = 4; drawDst(); });
 
+            // 品質(WebP)のON/OFF
+            function syncQualityUI() {
+                const isWebP = formatSel.value === 'image/webp';
+                qualityInput.disabled = !isWebP;
+            }
+            formatSel.addEventListener('change', syncQualityUI);
+            syncQualityUI();
+
             // ダウンロードボタン
             downloadBtn.addEventListener('click', () => {
                 if (!srcImg) { alert('先に画像を読み込んでね。'); return; }
