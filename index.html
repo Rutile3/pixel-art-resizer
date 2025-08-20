@@ -178,8 +178,14 @@
                 setStatus(sw, sh, s);
             }
 
+            // ファイル名のサニタイズ
+            function sanitizeName(name) {
+                return (name || 'image').replace(/\.[^.]+$/, '').replace(/[^\w\-]+/g, '_');
+            }
+
+            // 画像の読み込み
             function handleFile(file) {
-                fileName = file.name.replace(/\.[^.]+$/, '') || 'image';
+                fileName = sanitizeName(file.name);
                 const url = URL.createObjectURL(file);
                 const img = new Image();
                 img.onload = () => {
