@@ -245,26 +245,29 @@
             });
 
             // ダウンロードボタン
-            downloadBtn.addEventListener('click', () => {
+            function canvasToBlob(canvas, type, quality) {
+                return new Promise((res, rej) => {
+                    canvas.toBlob(b => b ? res(b) : rej(new Error('toBlob失敗')), type, quality);
+                });
+            }
+            async function downloadCurrent() {
                 if (!srcImg) { alert('先に画像を読み込んでね。'); return; }
                 const type = formatSel.value;
                 const sfx = type === 'image/png' ? 'png' : 'webp';
                 const q = Number(qualityInput.value) || 0.95;
-
-                // toBlobでファイル化
-                dstCanvas.toBlob(blob => {
-                    if (!blob) { alert('エクスポート失敗'); return; }
+                try {
+                    const blob = await canvasToBlob(dstCanvas, type, q);
                     const url = URL.createObjectURL(blob);
-                    dlLink.href = url;
+                    const a = document.createElement('a');
                     const s = Math.floor(Number(scaleInput.value) || 1);
-                    dlLink.download = `${fileName}_x${s}.${sfx}`;
-                    dlLink.classList.remove('d-none');
-                    dlLink.click();
-
-                    // 少し待ってから解放（ダウンロード開始後）
-                    setTimeout(() => URL.revokeObjectURL(url), 2000);
-                }, type, q);
-            });
+                    a.href = url; a.download = `${fileName}_x${s}.${sfx}`; a.click();
+                    setTimeout(() => URL.revokeObjectURL(url), 1500);
+                } catch (e) {
+                    console.error(e);
+                    alert('エクスポートに失敗しました。');
+                }
+            }
+            downloadBtn.addEventListener('click', downloadCurrent);
 
             // 初期メッセージ
             setStatus(0, 0, Number(scaleInput.value));
