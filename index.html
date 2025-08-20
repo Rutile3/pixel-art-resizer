@@ -1,0 +1,253 @@
+<!doctype html>
+<html lang="ja">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>ドット絵リサイズ（最近傍・補間なし）</title>
+    <style>
+        :root {
+            font-family: system-ui, sans-serif;
+        }
+
+        body {
+            margin: 24px;
+        }
+
+        .wrap {
+            display: grid;
+            gap: 16px;
+            max-width: 960px;
+        }
+
+        .panel {
+            border: 1px solid #ddd;
+            border-radius: 12px;
+            padding: 16px;
+        }
+
+        .drop {
+            border: 2px dashed #888;
+            border-radius: 12px;
+            padding: 24px;
+            text-align: center;
+            color: #555;
+        }
+
+        .drop.drag {
+            background: #f0f7ff;
+            border-color: #4a90e2;
+        }
+
+        canvas {
+            image-rendering: pixelated;
+            max-width: 100%;
+            background: transparent;
+        }
+
+        .row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: center;
+        }
+
+        input[type="number"] {
+            width: 8rem;
+        }
+
+        button,
+        input,
+        select,
+        a.button {
+            padding: .6rem .9rem;
+            border-radius: 10px;
+            border: 1px solid #ccc;
+            background: #fff;
+        }
+
+        button.primary,
+        a.button.primary {
+            background: #2563eb;
+            color: #fff;
+            border-color: #1d4ed8;
+            text-decoration: none;
+        }
+
+        .hint {
+            color: #666;
+            font-size: .9rem;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="wrap">
+        <h1>ドット絵リサイズ（補間なし）</h1>
+        <div class="panel">
+            <div class="row">
+                <input type="file" id="file" accept="image/png, image/gif, image/webp, image/jpeg" />
+                <span class="hint">PNG推奨（透過も保持）</span>
+            </div>
+            <div id="drop" class="drop" tabindex="0">ここに画像をドラッグ＆ドロップ</div>
+        </div>
+
+        <div class="panel">
+            <div class="row">
+                <label>倍率（整数）：<input id="scale" type="number" min="1" step="1" value="4"></label>
+                <button id="fit2x">×2</button>
+                <button id="fit3x">×3</button>
+                <button id="fit4x">×4</button>
+                <span class="hint">※にじみ回避のため整数倍率を推奨</span>
+            </div>
+            <div class="row">
+                <label>出力形式：
+                    <select id="format">
+                        <option value="image/png">PNG（非可逆圧縮なし／透過OK）</option>
+                        <option value="image/webp">WebP</option>
+                    </select>
+                </label>
+                <label>品質（WebPのみ）：
+                    <input id="quality" type="number" min="0" max="1" step="0.05" value="0.95">
+                </label>
+                <button id="download" class="primary">ダウンロード</button>
+                <a id="dlLink" class="button primary" download style="display:none;">ダウンロード</a>
+            </div>
+        </div>
+
+        <div class="panel">
+            <h2>プレビュー</h2>
+            <div class="row">
+                <div>
+                    <div>入力</div>
+                    <canvas id="src" aria-label="入力プレビュー"></canvas>
+                </div>
+                <div>
+                    <div>出力（補間なし）</div>
+                    <canvas id="dst" aria-label="出力プレビュー"></canvas>
+                </div>
+            </div>
+            <div id="meta" class="hint"></div>
+        </div>
+    </div>
+
+    <script>
+        (() => {
+            const fileInput = document.getElementById('file');
+            const drop = document.getElementById('drop');
+            const srcCanvas = document.getElementById('src');
+            const dstCanvas = document.getElementById('dst');
+            const scaleInput = document.getElementById('scale');
+            const formatSel = document.getElementById('format');
+            const qualityInput = document.getElementById('quality');
+            const downloadBtn = document.getElementById('download');
+            const dlLink = document.getElementById('dlLink');
+            const meta = document.getElementById('meta');
+            const fit2 = document.getElementById('fit2x');
+            const fit3 = document.getElementById('fit3x');
+            const fit4 = document.getElementById('fit4x');
+
+            let fileName = 'image';
+            let srcImg = null;
+
+            const ctxSrc = srcCanvas.getContext('2d');
+            const ctxDst = dstCanvas.getContext('2d');
+
+            // 補間無効（にじみ防止）
+            function disableSmoothing(ctx) {
+                ctx.imageSmoothingEnabled = false;
+                ctx.imageSmoothingQuality = 'low';
+            }
+            disableSmoothing(ctxSrc);
+            disableSmoothing(ctxDst);
+
+            function setStatus(w, h, s) {
+                meta.textContent = `入力: ${w}×${h}px / 倍率: ${s} / 出力: ${w * s}×${h * s}px`;
+            }
+
+            function drawDst() {
+                if (!srcImg) return;
+                const s = Math.max(1, Math.floor(Number(scaleInput.value) || 1));
+                scaleInput.value = s;
+
+                const sw = srcImg.width, sh = srcImg.height;
+                srcCanvas.width = sw; srcCanvas.height = sh;
+                ctxSrc.clearRect(0, 0, sw, sh);
+                ctxSrc.drawImage(srcImg, 0, 0);
+
+                dstCanvas.width = sw * s;
+                dstCanvas.height = sh * s;
+                ctxDst.clearRect(0, 0, dstCanvas.width, dstCanvas.height);
+
+                disableSmoothing(ctxDst);
+                // 最近傍で拡大縮小
+                ctxDst.drawImage(srcCanvas, 0, 0, sw, sh, 0, 0, sw * s, sh * s);
+
+                setStatus(sw, sh, s);
+            }
+
+            function handleFile(file) {
+                fileName = file.name.replace(/\.[^.]+$/, '') || 'image';
+                const url = URL.createObjectURL(file);
+                const img = new Image();
+                img.onload = () => {
+                    srcImg = img;
+                    drawDst();
+                    URL.revokeObjectURL(url);
+                };
+                img.onerror = () => alert('画像の読み込みに失敗しました。');
+                img.src = url;
+            }
+
+            // ファイル選択
+            fileInput.addEventListener('change', e => {
+                const f = e.target.files?.[0];
+                if (f) handleFile(f);
+            });
+
+            // D&D
+            function prevent(e) { e.preventDefault(); e.stopPropagation(); }
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(ev => {
+                drop.addEventListener(ev, prevent);
+            });
+            drop.addEventListener('dragenter', () => drop.classList.add('drag'));
+            drop.addEventListener('dragleave', () => drop.classList.remove('drag'));
+            drop.addEventListener('drop', e => {
+                drop.classList.remove('drag');
+                const f = e.dataTransfer.files?.[0];
+                if (f) handleFile(f);
+            });
+
+            // 倍率変更
+            scaleInput.addEventListener('input', drawDst);
+            fit2.addEventListener('click', () => { scaleInput.value = 2; drawDst(); });
+            fit3.addEventListener('click', () => { scaleInput.value = 3; drawDst(); });
+            fit4.addEventListener('click', () => { scaleInput.value = 4; drawDst(); });
+
+            // ダウンロード
+            downloadBtn.addEventListener('click', async () => {
+                if (!srcImg) { alert('先に画像を読み込んでね。'); return; }
+                const type = formatSel.value;
+                const sfx = type === 'image/png' ? 'png' : 'webp';
+                const q = Number(qualityInput.value) || 0.95;
+
+                // toBlobでファイル化
+                dstCanvas.toBlob(blob => {
+                    if (!blob) { alert('エクスポートに失敗しました。'); return; }
+                    const url = URL.createObjectURL(blob);
+                    dlLink.href = url;
+                    const s = Math.floor(Number(scaleInput.value) || 1);
+                    dlLink.download = `${fileName}_x${s}.${sfx}`;
+                    dlLink.click();
+                    // 少し待ってから解放（ダウンロード開始後）
+                    setTimeout(() => URL.revokeObjectURL(url), 2000);
+                }, type, q);
+            });
+
+            // 初期メッセージ
+            setStatus(0, 0, Number(scaleInput.value));
+        })();
+    </script>
+</body>
+
+</html>
