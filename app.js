@@ -14,6 +14,8 @@
   const fit2 = document.getElementById("fit2x");
   const fit3 = document.getElementById("fit3x");
   const fit4 = document.getElementById("fit4x");
+  const fit5 = document.getElementById("fit5x");
+  const fit10 = document.getElementById("fit10x");
 
   let fileName = "image";
   let srcImg = null;
@@ -130,6 +132,14 @@
   });
   fit4.addEventListener("click", () => {
     scaleInput.value = 4;
+    drawDst();
+  });
+  fit5.addEventListener("click", () => {
+    scaleInput.value = 5;
+    drawDst();
+  });
+  fit10.addEventListener("click", () => {
+    scaleInput.value = 10;
     drawDst();
   });
 
