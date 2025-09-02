@@ -14,11 +14,13 @@
 </head>
 
 <body class="bg-light">
-    <div class="container py-4">
+    <header class="container my-4">
         <h1 class="mb-4">ドット絵リサイザー</h1>
-    
+    </header>
+
+    <main class="container my-4">
         <!-- ファイル入力 -->
-        <div class="card mb-3">
+        <section class="card mb-3" aria-labelledby="input-title">
             <div class="card-body">
                 <div class="mb-3">
                     <label class="form-label">画像ファイル選択</label>
@@ -27,10 +29,10 @@
                 </div>
                 <div id="drop" class="drop" role="button" tabindex="0">ここに画像をドラッグ＆ドロップ（クリックでも選択）</div>
             </div>
-        </div>
+        </section>
     
         <!-- 設定 -->
-        <div class="card mb-3">
+        <section class="card mb-3" aria-labelledby="setting-title">
             <div class="card-body">
                 <div class="row g-3 align-items-center mb-3">
                     <div class="col-auto">
@@ -76,10 +78,10 @@
                     </div>
                 </div>
             </div>
-        </div>
+        </section>
     
         <!-- プレビュー -->
-        <div class="card mb-3">
+        <section class="card mb-3" aria-labelledby="output-title">
             <div class="card-body">
                 <h2 class="h5">プレビュー</h2>
                 <div class="row g-3">
@@ -94,8 +96,8 @@
                 </div>
                 <p id="meta" class="text-muted small mt-2"></p>
             </div>
-        </div>
-    </div>
+        </section>
+    </main>
 
     <script defer src="./app.js"></script>
 </body>
