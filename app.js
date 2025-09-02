@@ -9,7 +9,6 @@
     const formatSel = document.getElementById("format");
     const qualityInput = document.getElementById("quality");
     const downloadBtn = document.getElementById("download");
-    const dlLink = document.getElementById("dlLink");
     const meta = document.getElementById("meta");
     const fit2 = document.getElementById("fit2x");
     const fit3 = document.getElementById("fit3x");
